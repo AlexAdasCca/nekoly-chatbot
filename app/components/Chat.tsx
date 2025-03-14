@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -95,12 +97,53 @@ export default function Chat() {
                       : 'bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600'
                   }`}
                 >
-                  <div className="prose dark:prose-invert max-w-none">
-                    {message.content.split('\n').map((line, i) => (
-                      <p key={i} className="mb-2 last:mb-0">
-                        {line}
-                      </p>
-                    ))}
+                  <div className={`prose dark:prose-invert max-w-none ${message.role === 'user' ? 'prose-invert' : ''}`}>
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                        h1: ({ children }) => <h1 className="text-xl font-bold mb-2">{children}</h1>,
+                        h2: ({ children }) => <h2 className="text-lg font-bold mb-2">{children}</h2>,
+                        h3: ({ children }) => <h3 className="text-base font-bold mb-2">{children}</h3>,
+                        ul: ({ children }) => <ul className="list-disc pl-4 mb-2">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal pl-4 mb-2">{children}</ol>,
+                        li: ({ children }) => <li className="mb-1">{children}</li>,
+                        code: ({ children }) => (
+                          <code className="bg-gray-100 dark:bg-gray-800 rounded px-1 py-0.5 text-sm font-mono">
+                            {children}
+                          </code>
+                        ),
+                        pre: ({ children }) => (
+                          <pre className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 mb-2 overflow-x-auto">
+                            {children}
+                          </pre>
+                        ),
+                        blockquote: ({ children }) => (
+                          <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic mb-2">
+                            {children}
+                          </blockquote>
+                        ),
+                        table: ({ children }) => (
+                          <div className="overflow-x-auto mb-2">
+                            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                              {children}
+                            </table>
+                          </div>
+                        ),
+                        th: ({ children }) => (
+                          <th className="px-4 py-2 bg-gray-100 dark:bg-gray-800 font-semibold text-left">
+                            {children}
+                          </th>
+                        ),
+                        td: ({ children }) => (
+                          <td className="px-4 py-2 border-t border-gray-200 dark:border-gray-700">
+                            {children}
+                          </td>
+                        ),
+                      }}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
                   </div>
                 </div>
                 <span className="text-xs text-gray-400 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
