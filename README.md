@@ -1,8 +1,13 @@
-# Rosamary Chat(Nekoly-ChatBot)
+# Nekoly-ChatBot
 
-基于 Next.js 和 DeepSeek AI 构建的现代化智能对话应用，具有实时对话和优雅的用户界面。
+基于 Next.js 和 DeepSeek AI 构建的现代化智能对话应用，具有实时对话、标签页管理和优雅的用户界面。
 
-已基于Nekoly网站的需求进行了一些功能性代码变更，更好地适配小型个人网站部署的场景。
+已针对 Nekoly 个人博客网站的需求进行了深度定制，包含以下特色功能：
+- 可自定义的标签页系统
+- 用户设置面板
+- 拖拽交互支持
+- 操作确认对话框
+- 深色/浅色主题切换
 
 ## ✨ 主要功能
 
@@ -13,7 +18,10 @@
 - 🌙 深色/浅色主题切换
 - ⚡ 快速响应，性能优化
 - 🔒 安全的 API 密钥处理
-- 📱 移动端友好设计
+- 🏷️ 可自定义的标签页系统
+- ⚙️ 用户设置面板
+- 🖱️ 拖拽交互支持
+- ❓ 操作确认对话框
 
 ## 🏗️ 技术架构
 
@@ -31,6 +39,11 @@
 - `app/api/chat/route.ts`: 处理聊天请求的 API 路由
 - `app/page.tsx`: 主页面布局
 - `app/layout.tsx`: 根布局和全局样式
+- `app/components/SettingsPanel.tsx`: 设置面板组件
+- `app/components/Tabs.tsx`: 标签页容器组件
+- `app/components/Tab.tsx`: 单个标签页组件
+- `app/components/CustomDragLayer.tsx`: 自定义拖拽层组件
+- `app/components/ConfirmDialog.tsx`: 确认对话框组件
 
 ## 🚀 部署指南
 
@@ -49,7 +62,7 @@
 1. 克隆仓库：
    ```bash
    git clone https://github.com/AlexAdasCca/nekoly-chatbot.git
-   cd rosamary-chat
+   cd nekoly-chatbot
    ```
 
 2. 安装依赖：
@@ -107,5 +120,3 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-
