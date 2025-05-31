@@ -24,7 +24,7 @@ export async function POST(req: Request) {
       const ipData = ipRequestCounts.get(clientIp)!;
       if (ipData.count >= GUEST_LIMIT) {
         return NextResponse.json(
-          { error: `Guest limit reached (${GUEST_LIMIT} requests/day). Please provide your own API key.` },
+          { error: 'The current preview experience limit has been reached. If you continue to ask questions, please set APIKEY' },
           { status: 429 }
         );
       }
