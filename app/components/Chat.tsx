@@ -27,7 +27,6 @@ interface Conversation {
 export default function Chat() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string>('');
-  const [settingsChanged, setSettingsChanged] = useState(false);
   const [globalApiKey, setGlobalApiKey] = useState('');
   
   useEffect(() => {
@@ -561,7 +560,7 @@ export default function Chat() {
                 </p>
                 {globalApiKey && !globalApiKey.startsWith('sk-') && (
                   <p className="text-xs text-red-500 dark:text-red-400 mt-1">
-                    Warning: The API key format looks incorrect. It should start with "sk-"
+                    Warning: The API key format looks incorrect. It should start with &quot;sk-&quot;
                   </p>
                 )}
               </div>
