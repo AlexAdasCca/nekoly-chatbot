@@ -48,7 +48,7 @@ export default function Chat() {
   const createNewConversation = useCallback((): Conversation => {
     return {
       id: Date.now().toString(),
-      name: `Conversation ${conversations.length + 1}`,
+      name: `Conversation ${conversations.length}`,
       messages: [],
       apiKey: '',
       createdAt: Date.now(),
