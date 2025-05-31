@@ -27,9 +27,9 @@ interface Conversation {
 export default function Chat() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string>('');
-  const [apiKey, setApiKey] = useState<string>('');
   const [settingsChanged, setSettingsChanged] = useState(false);
-  const [globalApiKey, setGlobalApiKey] = useState('');
+  const [globalApiKey, setGlobalApiKey] = useState(localStorage.getItem('globalApiKey') || '');
+  const apiKey = globalApiKey; // Use global API key for all conversations
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedConversations, setSelectedConversations] = useState<string[]>([]);
   const [editingConversationId, setEditingConversationId] = useState<string | null>(null);
@@ -49,7 +49,6 @@ export default function Chat() {
         const activeConversation = parsed.find((c: Conversation) => !c.isClosed) || parsed[0];
         setCurrentConversationId(activeConversation.id);
         setMessages(activeConversation.messages);
-        setApiKey(activeConversation.apiKey || '');
       }
     } else {
       const newConversation = createNewConversation();
@@ -70,7 +69,6 @@ export default function Chat() {
     const conversation = conversations.find(c => c.id === currentConversationId);
     if (conversation) {
       setMessages(conversation.messages);
-      setApiKey(conversation.apiKey || '');
     }
   }, [currentConversationId, conversations]);
 
@@ -175,7 +173,6 @@ export default function Chat() {
               const activeConversation = imported.find((c: Conversation) => !c.isClosed) || imported[0];
               setCurrentConversationId(activeConversation.id);
               setMessages(activeConversation.messages);
-              setApiKey(activeConversation.apiKey || '');
             }
           }
         } catch (error) {
@@ -534,32 +531,29 @@ export default function Chat() {
                   type="password"
                   value={globalApiKey}
                   onChange={(e) => {
-                    setGlobalApiKey(e.target.value);
-                    setSettingsChanged(true);
+                    const newKey = e.target.value;
+                    setGlobalApiKey(newKey);
+                    localStorage.setItem('globalApiKey', newKey);
+                    
+                    // Update all conversations with new API key
+                    setConversations(prev => 
+                      prev.map(conv => ({
+                        ...conv,
+                        apiKey: newKey || undefined
+                      }))
+                    );
                   }}
-                  placeholder="Enter your API key"
+                  placeholder="Enter your API key (e.g. sk-...)"
                   className="w-full rounded-lg border border-gray-200 dark:border-gray-700 p-2 mb-2 dark:bg-gray-700"
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  This key will be used for all conversations
+                  This key will be automatically saved and used for all conversations
                 </p>
-                <div className="flex justify-end mt-4">
-                  <button
-                    onClick={() => {
-                      setConversations(prev => 
-                        prev.map(conv => ({
-                          ...conv,
-                          apiKey: globalApiKey || undefined
-                        }))
-                      );
-                      setSettingsChanged(false);
-                    }}
-                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
-                    disabled={!settingsChanged}
-                  >
-                    Save
-                  </button>
-                </div>
+                {globalApiKey && !globalApiKey.startsWith('sk-') && (
+                  <p className="text-xs text-red-500 dark:text-red-400 mt-1">
+                    Warning: The API key format looks incorrect. It should start with "sk-"
+                  </p>
+                )}
               </div>
             )
           },
