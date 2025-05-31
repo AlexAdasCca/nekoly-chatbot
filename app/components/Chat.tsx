@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { unstable_batchedUpdates } from 'react-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { DndProvider } from 'react-dnd';
@@ -107,13 +108,25 @@ export default function Chat() {
     }
   };
 
-  const handleNewConversation = () => {
+  const handleNewConversation = useCallback(() => {
     const newConversation = createNewConversation();
-    setConversations(prev => [newConversation, ...prev]);
-    setCurrentConversationId(newConversation.id);
-    setHiddenTabs(prev => prev.filter(id => id !== newConversation.id));
-    setSelectedConversations([]);
-  };
+    
+    // Batch state updates to prevent unnecessary re-renders
+    unstable_batchedUpdates(() => {
+      setConversations(prev => {
+        const updated = [newConversation, ...prev];
+        // Update localStorage immediately
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('chatConversations', JSON.stringify(updated));
+        }
+        return updated;
+      });
+      setHiddenTabs(prev => prev.filter(id => id !== newConversation.id));
+      setSelectedConversations([]);
+      setMessages([]);
+      setCurrentConversationId(newConversation.id);
+    });
+  }, [createNewConversation]);
 
   const toggleConversationSelection = (id: string) => {
     setSelectedConversations(prev => 
@@ -242,7 +255,7 @@ export default function Chat() {
             content: msg.content
           })),
           apiKey: apiKey || undefined
-        }),
+        })
       });
 
       const data = await response.json();
