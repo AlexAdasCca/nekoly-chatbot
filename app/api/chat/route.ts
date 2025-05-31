@@ -23,8 +23,15 @@ export async function POST(req: Request) {
     if (!apiKey) {
       const ipData = ipRequestCounts.get(clientIp)!;
       if (ipData.count >= GUEST_LIMIT) {
+        const limitMessage = "The current preview experience limit has been reached. If you continue to ask questions, please set APIKEY";
         return NextResponse.json({
-          response: 'The current preview experience limit has been reached. If you continue to ask questions, please set APIKEY'
+          choices: [{
+            message: {
+              role: "assistant",
+              content: limitMessage
+            }
+          }],
+          response: limitMessage
         });
       }
       ipData.count += 1;
@@ -39,23 +46,45 @@ export async function POST(req: Request) {
       );
     }
 
-    const messages = [
-      ...history,
-      { role: 'user', content: message }
-    ];
+    // Validate and format messages array
+    const messages = [];
+    
+    // Add history messages if they exist and are valid
+    if (Array.isArray(history)) {
+      for (const msg of history) {
+        if (msg?.role && msg?.content) {
+          messages.push({
+            role: msg.role,
+            content: String(msg.content)
+          });
+        }
+      }
+    }
+
+    // Add current user message
+    messages.push({
+      role: 'user',
+      content: String(message)
+    });
+
+    // Create request body with proper encoding
+    const requestBody = {
+      model: 'deepseek-chat',
+      messages: messages,
+      temperature: 0.7,
+      max_tokens: 1000,
+    };
+
+    // Convert to Buffer to ensure proper encoding
+    const bodyBuffer = Buffer.from(JSON.stringify(requestBody), 'utf-8');
 
     const response = await fetch(DEEPSEEK_API_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
         'Authorization': `Bearer ${effectiveApiKey}`,
       },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: 1000,
-      }),
+      body: bodyBuffer,
     });
 
     const data = await response.json();
@@ -76,7 +105,8 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({
-      response: data.choices[0].message.content,
+      ...data,
+      response: data.choices[0].message.content
     });
   } catch (error) {
     console.error('Error:', error);
