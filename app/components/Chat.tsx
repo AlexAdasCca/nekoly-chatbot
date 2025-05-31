@@ -627,7 +627,7 @@ export default function Chat() {
       <ConfirmDialog
         isOpen={showDeleteConfirm}
         title="Delete Conversations"
-        message="Are you sure you want to delete the selected conversations? This action cannot be undone."
+        message="Are you sure you want to delete the selected conversations? This action is not reversible."
         onConfirm={() => {
           deleteConversations(selectedConversations);
           setShowDeleteConfirm(false);
