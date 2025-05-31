@@ -23,10 +23,9 @@ export async function POST(req: Request) {
     if (!apiKey) {
       const ipData = ipRequestCounts.get(clientIp)!;
       if (ipData.count >= GUEST_LIMIT) {
-        return NextResponse.json(
-          { error: 'The current preview experience limit has been reached. If you continue to ask questions, please set APIKEY' },
-          { status: 429 }
-        );
+        return NextResponse.json({
+          response: 'The current preview experience limit has been reached. If you continue to ask questions, please set APIKEY'
+        });
       }
       ipData.count += 1;
     }
