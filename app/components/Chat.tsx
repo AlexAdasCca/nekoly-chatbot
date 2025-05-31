@@ -28,7 +28,13 @@ export default function Chat() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string>('');
   const [settingsChanged, setSettingsChanged] = useState(false);
-  const [globalApiKey, setGlobalApiKey] = useState(localStorage.getItem('globalApiKey') || '');
+  const [globalApiKey, setGlobalApiKey] = useState('');
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setGlobalApiKey(localStorage.getItem('globalApiKey') || '');
+    }
+  }, []);
   const apiKey = globalApiKey; // Use global API key for all conversations
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedConversations, setSelectedConversations] = useState<string[]>([]);
@@ -41,25 +47,27 @@ export default function Chat() {
 
   // Initialize conversations from localStorage
   useEffect(() => {
-    const savedConversations = localStorage.getItem('chatConversations');
-    if (savedConversations) {
-      const parsed = JSON.parse(savedConversations);
-      setConversations(parsed);
-      if (parsed.length > 0) {
-        const activeConversation = parsed.find((c: Conversation) => !c.isClosed) || parsed[0];
-        setCurrentConversationId(activeConversation.id);
-        setMessages(activeConversation.messages);
+    if (typeof window !== 'undefined') {
+      const savedConversations = localStorage.getItem('chatConversations');
+      if (savedConversations) {
+        const parsed = JSON.parse(savedConversations);
+        setConversations(parsed);
+        if (parsed.length > 0) {
+          const activeConversation = parsed.find((c: Conversation) => !c.isClosed) || parsed[0];
+          setCurrentConversationId(activeConversation.id);
+          setMessages(activeConversation.messages);
+        }
+      } else {
+        const newConversation = createNewConversation();
+        setConversations([newConversation]);
+        setCurrentConversationId(newConversation.id);
       }
-    } else {
-      const newConversation = createNewConversation();
-      setConversations([newConversation]);
-      setCurrentConversationId(newConversation.id);
     }
   }, []);
 
   // Save conversations to localStorage when they change
   useEffect(() => {
-    if (conversations.length > 0) {
+    if (typeof window !== 'undefined' && conversations.length > 0) {
       localStorage.setItem('chatConversations', JSON.stringify(conversations));
     }
   }, [conversations]);
@@ -119,7 +127,9 @@ export default function Chat() {
   const deleteConversations = (ids: string[]) => {
     setConversations(prev => {
       const updated = prev.filter(conv => !ids.includes(conv.id));
-      localStorage.setItem('chatConversations', JSON.stringify(updated));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('chatConversations', JSON.stringify(updated));
+      }
       return updated;
     });
     
