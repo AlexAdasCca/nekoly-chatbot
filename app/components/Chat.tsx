@@ -44,6 +44,17 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  const createNewConversation = useCallback((): Conversation => {
+    return {
+      id: Date.now().toString(),
+      name: `Conversation ${conversations.length + 1}`,
+      messages: [],
+      apiKey: '',
+      createdAt: Date.now(),
+      isClosed: false
+    };
+  }, [conversations.length]);
+
   // Initialize conversations from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -62,7 +73,7 @@ export default function Chat() {
         setCurrentConversationId(newConversation.id);
       }
     }
-  }, []);
+  }, [createNewConversation]);
 
   // Save conversations to localStorage when they change
   useEffect(() => {
@@ -78,17 +89,6 @@ export default function Chat() {
       setMessages(conversation.messages);
     }
   }, [currentConversationId, conversations]);
-
-  const createNewConversation = useCallback((): Conversation => {
-    return {
-      id: Date.now().toString(),
-      name: `Conversation ${conversations.length + 1}`,
-      messages: [],
-      apiKey: '',
-      createdAt: Date.now(),
-      isClosed: false
-    };
-  }, [conversations.length]);
 
   const [hiddenTabs, setHiddenTabs] = useState<string[]>([]);
 
