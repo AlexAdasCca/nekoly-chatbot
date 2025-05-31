@@ -2,15 +2,41 @@ import { NextResponse } from 'next/server';
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
+const GUEST_LIMIT = parseInt(process.env.GUEST_LIMIT || '3');
+
+// Simple in-memory store for rate limiting (replace with Redis in production)
+const ipRequestCounts = new Map<string, { count: number, lastReset: number }>();
 
 export async function POST(req: Request) {
   try {
-    const { message, history } = await req.json();
+    const { message, history, apiKey } = await req.json();
+    const clientIp = req.headers.get('x-forwarded-for') || 'unknown';
 
-    if (!DEEPSEEK_API_KEY) {
+    // Reset counters if it's a new day
+    const now = Date.now();
+    const oneDay = 24 * 60 * 60 * 1000;
+    if (!ipRequestCounts.has(clientIp) || now - ipRequestCounts.get(clientIp)!.lastReset > oneDay) {
+      ipRequestCounts.set(clientIp, { count: 0, lastReset: now });
+    }
+
+    // Check rate limit for guests (no API key provided)
+    if (!apiKey) {
+      const ipData = ipRequestCounts.get(clientIp)!;
+      if (ipData.count >= GUEST_LIMIT) {
+        return NextResponse.json(
+          { error: `Guest limit reached (${GUEST_LIMIT} requests/day). Please provide your own API key.` },
+          { status: 429 }
+        );
+      }
+      ipData.count += 1;
+    }
+
+    // Use provided API key or fallback to server key
+    const effectiveApiKey = apiKey || DEEPSEEK_API_KEY;
+    if (!effectiveApiKey) {
       return NextResponse.json(
-        { error: 'DeepSeek API key not configured' },
-        { status: 500 }
+        { error: 'No API key provided and server key not configured' },
+        { status: 401 }
       );
     }
 
@@ -23,7 +49,7 @@ export async function POST(req: Request) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+        'Authorization': `Bearer ${effectiveApiKey}`,
       },
       body: JSON.stringify({
         model: 'deepseek-chat',
@@ -36,7 +62,18 @@ export async function POST(req: Request) {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error?.message || 'Failed to get response from DeepSeek');
+      console.error('DeepSeek API Error:', data);
+      return NextResponse.json(
+        { error: data.error?.message || 'Failed to get response from DeepSeek API' },
+        { status: 500 }
+      );
+    }
+
+    if (!data.choices?.[0]?.message?.content) {
+      return NextResponse.json(
+        { error: 'Invalid response format from DeepSeek API' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
