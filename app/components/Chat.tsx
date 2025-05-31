@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { DndProvider } from 'react-dnd';
@@ -79,7 +79,7 @@ export default function Chat() {
     }
   }, [currentConversationId, conversations]);
 
-  const createNewConversation = (): Conversation => {
+  const createNewConversation = useCallback((): Conversation => {
     return {
       id: Date.now().toString(),
       name: `Conversation ${conversations.length + 1}`,
@@ -88,7 +88,7 @@ export default function Chat() {
       createdAt: Date.now(),
       isClosed: false
     };
-  };
+  }, [conversations.length]);
 
   const [hiddenTabs, setHiddenTabs] = useState<string[]>([]);
 
