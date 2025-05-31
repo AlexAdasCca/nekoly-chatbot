@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { DndProvider } from 'react-dnd';
@@ -100,11 +100,6 @@ export default function Chat() {
         setMessages([]);
       }
     }
-  };
-
-  const reopenTab = (id: string) => {
-    setHiddenTabs(prev => prev.filter(tabId => tabId !== id));
-    setCurrentConversationId(id);
   };
 
   const handleNewConversation = () => {
@@ -212,7 +207,7 @@ export default function Chat() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, createNewConversation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
