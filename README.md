@@ -1,6 +1,8 @@
-# Rosamary Chat
+# Rosamary Chat(Nekoly-ChatBot)
 
 基于 Next.js 和 DeepSeek AI 构建的现代化智能对话应用，具有实时对话和优雅的用户界面。
+
+已基于Nekoly网站的需求进行了一些功能性代码变更，更好地适配小型个人网站部署的场景。
 
 ## ✨ 主要功能
 
@@ -46,7 +48,7 @@
 
 1. 克隆仓库：
    ```bash
-   git clone https://github.com/GlimmerForest/chatbot.git
+   git clone https://github.com/AlexAdasCca/nekoly-chatbot.git
    cd rosamary-chat
    ```
 
