@@ -422,8 +422,8 @@ export async function POST(req: Request) {
         text: processedResponseText,
         emoticons: emoticons
       },
-      response: processedResponseText, // 保持向后兼容
-      emoticons: emoticons    // 保持向后兼容
+      response: processedResponseText,
+      emoticons: emoticons
     });
   } catch (error) {
     console.error('Error:', error);
