@@ -31,9 +31,9 @@ async function searchEmoticons(
         }
       });
 
-      console.log('Fetched HTML content:', response.data.substring(0, 500) + '...'); // Log first 500 chars
+      // console.log('Fetched HTML content:', response.data.substring(0, 500) + '...'); // Log first 500 chars
       const $ = cheerio.load(response.data);
-      console.log('Parsed HTML structure:', $.html().substring(0, 500) + '...'); // Log parsed structure
+      // console.log('Parsed HTML structure:', $.html().substring(0, 500) + '...'); // Log parsed structure
       const emoticons: EmoticonResult[] = [];
     
       // Process images sequentially with delay to avoid rate limiting
@@ -95,7 +95,7 @@ async function searchEmoticons(
       // 如果是503错误且不是最后一次尝试，则等待后重试
       if ((error instanceof AxiosError && error.response?.status === 503) && attempt < maxRetries) {
         const waitTime = attempt * 1000; // 指数退避
-        console.log(`Waiting ${waitTime}ms before retry...`);
+        // console.log(`Waiting ${waitTime}ms before retry...`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
         continue;
       }
@@ -128,7 +128,7 @@ async function searchEmoticons(
 
         const alternative = response.data.choices[0]?.message?.content?.trim();
         if (alternative && alternative !== currentAlternative) {
-          console.log(`AI suggested alternative (attempt ${attempt}): "${currentAlternative}" → "${alternative}"`);
+          // console.log(`AI suggested alternative (attempt ${attempt}): "${currentAlternative}" → "${alternative}"`);
           
           // 尝试用新关键词搜索
           const emoticons = await searchEmoticons(alternative, apiKey);
@@ -162,7 +162,7 @@ async function replaceEmoticonTags(content: string, apiKey?: string): Promise<Em
   const emoticons: EmoticonResult[] = [];
   
   const matches = [...content.matchAll(emoticonRegex)];
-  console.log('Found potential emoticon matches:', matches);
+  // console.log('Found potential emoticon matches:', matches);
   
   for (const match of matches) {
     try {
@@ -176,7 +176,7 @@ async function replaceEmoticonTags(content: string, apiKey?: string): Promise<Em
         .trim();
       
       if (!keyword) {
-        console.log(`No valid keyword extracted from ${fileName}`);
+        // console.log(`No valid keyword extracted from ${fileName}`);
         continue;
       }
 
@@ -219,16 +219,16 @@ async function replaceEmoticonTags(content: string, apiKey?: string): Promise<Em
         }
       }
       
-      console.log('Generated keyword variations:', uniqueVariations);
+      // console.log('Generated keyword variations:', uniqueVariations);
       
-      console.log(`Processing emoticon: ${fullMatch}, Keyword variations:`, keywordVariations);
+      // console.log(`Processing emoticon: ${fullMatch}, Keyword variations:`, keywordVariations);
       
       let bestMatch: EmoticonResult | null = null;
       
       // Try each keyword variation until we find a match
       for (const variation of keywordVariations) {
         const emoticons = await searchEmoticons(variation, apiKey);
-        console.log(`Search results for "${variation}":`, emoticons.length);
+        // console.log(`Search results for "${variation}":`, emoticons.length);
         
         if (emoticons.length > 0) {
           bestMatch = emoticons[0];
@@ -241,19 +241,19 @@ async function replaceEmoticonTags(content: string, apiKey?: string): Promise<Em
         const escapedAlt = bestMatch.alt.replace(/"/g, '"');
         const imgTag = `<img src="${bestMatch.url}" alt="${escapedAlt}" style="max-width: 200px; max-height: 200px;" />`;
         result = result.replace(fullMatch, imgTag);
-        console.log(`Replaced ${fullMatch} with: ${imgTag.substring(0, 100)}...`);
+        // console.log(`Replaced ${fullMatch} with: ${imgTag.substring(0, 100)}...`);
       } else {
-        console.log(`No matching emoticon found for ${fullMatch}`);
+        // console.log(`No matching emoticon found for ${fullMatch}`);
       }
     } catch (error) {
       console.error(`Error processing emoticon match ${match[0]}:`, error);
     }
   }
   
-  console.log('Final content after emoticon processing:', {
-    text: result,
-    emoticons: emoticons
-  });
+  // console.log('Final content after emoticon processing:', {
+  //   text: result,
+  //   emoticons: emoticons
+  // });
   return {
     processedText: result,
     emoticons: emoticons
@@ -329,26 +329,26 @@ export async function POST(req: Request) {
       // Handle both string and array format system prompts
       let formattedPrompt;
       if (Array.isArray(systemPrompt)) {
-        console.log('Received array system prompt:', systemPrompt);
+        // console.log('Received array system prompt:', systemPrompt);
         formattedPrompt = systemPrompt.join('\n');
       } else {
-        console.log('Received string system prompt:', systemPrompt);
+        // console.log('Received string system prompt:', systemPrompt);
         formattedPrompt = String(systemPrompt).replace(/\n/g, '\n');
       }
-      console.log('Formatted system prompt:', formattedPrompt);
-      messages.push({
-        role: 'system',
-        content: formattedPrompt
-      });
+      // console.log('Formatted system prompt:', formattedPrompt);
+      // messages.push({
+      //   role: 'system',
+      //   content: formattedPrompt
+      // });
     }
 
-    console.log('Final messages being sent to API:', {
-      messages: messages.map(m => ({
-        role: m.role,
-        content: m.content.substring(0, 100) + (m.content.length > 100 ? '...' : '')
-      })),
-      messageCount: messages.length
-    });
+    // console.log('Final messages being sent to API:', {
+    //   messages: messages.map(m => ({
+    //     role: m.role,
+    //     content: m.content.substring(0, 100) + (m.content.length > 100 ? '...' : '')
+    //   })),
+    //   messageCount: messages.length
+    // });
     
     // Add history messages if they exist and are valid
     if (Array.isArray(history)) {
@@ -411,10 +411,10 @@ export async function POST(req: Request) {
     // Process AI response for emoticons
     const aiResponse = data.choices[0].message.content;
     const { processedText: processedResponseText, emoticons } = await replaceEmoticonTags(aiResponse, effectiveApiKey);
-    console.log('AI response after emoticon processing:', {
-      text: processedResponseText,
-      emoticons: emoticons.map(e => ({...e, url: e.url.substring(0, 50) + '...'}))
-    });
+    // console.log('AI response after emoticon processing:', {
+    //   text: processedResponseText,
+    //   emoticons: emoticons.map(e => ({...e, url: e.url.substring(0, 50) + '...'}))
+    // });
 
     return NextResponse.json({
       ...data,
