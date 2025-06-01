@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import rehypeRaw from 'rehype-raw';
+import type { EmoticonResult } from '@/app/api/chat/route';
 import { unstable_batchedUpdates } from 'react-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -29,10 +31,25 @@ export default function Chat() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string>('');
   const [globalApiKey, setGlobalApiKey] = useState('');
+  const [systemPrompt, setSystemPrompt] = useState('');
+  const [presets, setPresets] = useState<Array<{name: string, content: string}>>([]);
   
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setGlobalApiKey(localStorage.getItem('globalApiKey') || '');
+      setSystemPrompt(localStorage.getItem('systemPrompt') || '');
+      
+      // Load presets from JSON file
+      const loadPresets = async () => {
+        try {
+        const response = await fetch('/config/prompts.json');
+          const data = await response.json();
+          setPresets(data.presets);
+        } catch (error) {
+          console.error('Failed to load prompts:', error);
+        }
+      };
+      loadPresets();
     }
   }, []);
   const apiKey = globalApiKey; // Use global API key for all conversations
@@ -254,14 +271,33 @@ export default function Chat() {
             role: msg.role,
             content: msg.content
           })),
-          apiKey: apiKey || undefined
+          apiKey: apiKey || undefined,
+          systemPrompt: systemPrompt || undefined
         })
       });
 
       const data = await response.json();
+      
+      // Handle both new and old response formats
+      const responseText = data.content?.text || data.response;
+      const emoticons = data.content?.emoticons || data.emoticons || [];
+      
+      // Combine text and emoticons into a single message
+      let fullContent = responseText;
+      if (emoticons.length > 0) {
+        const emoticonHtml = emoticons.map((emoticon: EmoticonResult) => 
+          `<div class="emoticon-container">
+            <img src="${emoticon.url}" alt="${emoticon.alt}" 
+                 class="emoticon-image" />
+            ${emoticon.alt ? `<div class="emoticon-alt">${emoticon.alt}</div>` : ''}
+          </div>`
+        ).join('');
+        fullContent += emoticonHtml;
+      }
+
       const assistantMessage: Message = { 
         role: 'assistant', 
-        content: data.response,
+        content: fullContent,
         timestamp: Date.now()
       };
       const finalMessages = [...updatedMessages, assistantMessage];
@@ -467,8 +503,36 @@ export default function Chat() {
                   <div className={`prose dark:prose-invert max-w-none ${message.role === 'user' ? 'prose-invert' : ''}`}>
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
+                      rehypePlugins={[rehypeRaw]}
                       components={{
                         p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                        img: ({ src, alt }) => {
+                          if (!src) return null;
+                          const isBase64 = src.startsWith('data:image');
+                          const proxiedSrc = isBase64 ? src : `/api/proxy-image?url=${encodeURIComponent(src)}`;
+                          return (
+                            <span className="block my-4">
+                              <span className="block border border-gray-200 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-800">
+                                <img
+                                  src={proxiedSrc}
+                                  alt={alt || 'Image'}
+                                  className="max-w-full h-auto mx-auto block"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                  }}
+                                  crossOrigin="anonymous"
+                                  referrerPolicy="no-referrer"
+                                />
+                                {alt && (
+                                  <span className="block text-xs text-center text-gray-500 dark:text-gray-400 mt-1">
+                                    {alt}
+                                  </span>
+                                )}
+                              </span>
+                            </span>
+                          );
+                        },
                         h1: ({ children }) => <h1 className="text-xl font-bold mb-2">{children}</h1>,
                         h2: ({ children }) => <h2 className="text-lg font-bold mb-2">{children}</h2>,
                         h3: ({ children }) => <h3 className="text-base font-bold mb-2">{children}</h3>,
@@ -535,6 +599,10 @@ export default function Chat() {
       </div>
       {/* Settings Panel */}
       <SettingsPanel
+        onPromptChange={(prompt) => {
+          setSystemPrompt(prompt);
+          localStorage.setItem('systemPrompt', prompt);
+        }}
         options={[
           {
             id: 'model',
@@ -576,6 +644,52 @@ export default function Chat() {
                     Warning: The API key format looks incorrect. It should start with &quot;sk-&quot;
                   </p>
                 )}
+              </div>
+            )
+          },
+          {
+            id: 'prompt',
+            icon: (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+              </svg>
+            ),
+            title: 'System Prompt',
+            content: (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Preset Prompts
+                </label>
+                <select
+                  onChange={(e) => {
+                    const selectedPreset = e.target.value;
+                    if (selectedPreset) {
+                      setSystemPrompt(selectedPreset);
+                      localStorage.setItem('systemPrompt', selectedPreset);
+                    }
+                  }}
+                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 p-2 mb-2 dark:bg-gray-700"
+                >
+                  <option value="">Select a preset...</option>
+                  {presets.map((preset) => (
+                    <option key={preset.name} value={preset.content}>
+                      {preset.name}
+                    </option>
+                  ))}
+                </select>
+                
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Custom Prompt
+                </label>
+                <textarea
+                  value={systemPrompt}
+                  onChange={(e) => {
+                    setSystemPrompt(e.target.value);
+                    localStorage.setItem('systemPrompt', e.target.value);
+                  }}
+                  placeholder="Enter custom system prompt..."
+                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 p-2 h-32 dark:bg-gray-700"
+                />
               </div>
             )
           },

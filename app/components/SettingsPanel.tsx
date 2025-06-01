@@ -13,9 +13,10 @@ interface SettingsOption {
 interface SettingsPanelProps {
   options: SettingsOption[];
   position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
+  onPromptChange?: (prompt: string) => void;
 }
 
-export default function SettingsPanel({ options, position = 'bottom-right' }: SettingsPanelProps) {
+export default function SettingsPanel({ options, position = 'bottom-right', onPromptChange }: SettingsPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeOption, setActiveOption] = useState<string | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -76,6 +77,54 @@ export default function SettingsPanel({ options, position = 'bottom-right' }: Se
       document.removeEventListener('click', handleDocumentClick);
     };
   }, [isOpen]);
+
+  // 加载预设提示词
+  interface Preset {
+    name: string;
+    content: string[];
+  }
+
+  const [presets, setPresets] = useState<Preset[]>([]);
+  const [customPrompt, setCustomPrompt] = useState<string>('');
+  const [selectedPreset, setSelectedPreset] = useState<string>('');
+
+  useEffect(() => {
+    const loadPresets = async () => {
+      try {
+        const response = await fetch('/config/prompts.json');
+        const data = await response.json();
+        setPresets(data.presets.map((preset: any) => ({
+          ...preset,
+          content: Array.isArray(preset.content) ? preset.content : [String(preset.content)]
+        })));
+      } catch (error) {
+        console.error('Failed to load prompts:', error);
+      }
+    };
+    loadPresets();
+  }, []);
+
+  const handlePromptChange = (prompt: string | string[]) => {
+    const promptText = Array.isArray(prompt) ? prompt.join('\n') : prompt;
+    setCustomPrompt(promptText);
+    onPromptChange?.(promptText);
+  };
+
+  const handlePresetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const presetName = e.target.value;
+    setSelectedPreset(presetName);
+    const selected = presets.find(p => p.name === presetName);
+    if (selected) {
+      handlePromptChange(selected.content);
+    }
+  };
+
+  const handleCustomPromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setCustomPrompt(value);
+    setSelectedPreset('');
+    onPromptChange?.(value);
+  };
 
   return (
     <div
@@ -172,7 +221,39 @@ export default function SettingsPanel({ options, position = 'bottom-right' }: Se
                 {options.find((o) => o.id === activeOption)?.title}
               </h3>
               <div className="space-y-4">
-                {options.find((o) => o.id === activeOption)?.content}
+                {activeOption === 'prompt' && (
+                  <>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium mb-1">
+                        Select Preset Prompt
+                      </label>
+                      <select
+                        value={selectedPreset}
+                        onChange={handlePresetChange}
+                        className="w-full p-2 border rounded bg-gray-800 text-white border-gray-700 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="">-- Select Prompt --</option>
+                        {presets.map((preset) => (
+                          <option key={preset.name} value={preset.name}>
+                            {preset.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Edit Custom Prompt
+                      </label>
+                      <textarea
+                        value={customPrompt}
+                        onChange={handleCustomPromptChange}
+                        className="w-full p-2 border rounded min-h-[100px]"
+                        placeholder="Please press custom prompt..."
+                      />
+                    </div>
+                  </>
+                )}
+                {activeOption !== 'prompt' && options.find((o) => o.id === activeOption)?.content}
               </div>
             </div>
           )}
