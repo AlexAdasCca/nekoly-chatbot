@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import * as cheerio from 'cheerio';
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
@@ -18,7 +18,7 @@ async function searchEmoticons(
   if (!safeKeyword) return [];
 
   const maxRetries = 3;
-  let lastError: any;
+  let lastError: AxiosError | Error = new Error('Unknown error');
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -84,12 +84,16 @@ async function searchEmoticons(
       };
 
       return emoticons.slice(0, 3);
-    } catch (error: any) {
-      lastError = error;
-      console.error(`Emoticon search attempt ${attempt} failed:`, error);
+    } catch (error: unknown) {
+      if (error instanceof Error || error instanceof AxiosError) {
+        lastError = error;
+      } else {
+        lastError = new Error(String(error));
+      }
+      console.error(`Emoticon search attempt ${attempt} failed:`, lastError);
       
       // 如果是503错误且不是最后一次尝试，则等待后重试
-      if (error.response?.status === 503 && attempt < maxRetries) {
+      if ((error instanceof AxiosError && error.response?.status === 503) && attempt < maxRetries) {
         const waitTime = attempt * 1000; // 指数退避
         console.log(`Waiting ${waitTime}ms before retry...`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
@@ -166,7 +170,7 @@ async function replaceEmoticonTags(content: string, apiKey?: string): Promise<Em
       const fileName = match[1];
       
       // Extract and clean keyword from filename
-      let keyword = fileName
+      const keyword = fileName
         .split('.')[0] // Remove extension
         .replace(/[^\w\u4e00-\u9fa5\s]/g, '') // Keep Chinese, letters, numbers and spaces
         .trim();

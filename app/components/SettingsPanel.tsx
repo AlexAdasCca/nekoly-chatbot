@@ -81,7 +81,11 @@ export default function SettingsPanel({ options, position = 'bottom-right', onPr
   // 加载预设提示词
   interface Preset {
     name: string;
-    content: string[];
+    content: string | string[];
+  }
+
+  interface PresetsResponse {
+    presets: Preset[];
   }
 
   const [presets, setPresets] = useState<Preset[]>([]);
@@ -92,8 +96,8 @@ export default function SettingsPanel({ options, position = 'bottom-right', onPr
     const loadPresets = async () => {
       try {
         const response = await fetch('/config/prompts.json');
-        const data = await response.json();
-        setPresets(data.presets.map((preset: any) => ({
+        const data = await response.json() as PresetsResponse;
+        setPresets(data.presets.map((preset) => ({
           ...preset,
           content: Array.isArray(preset.content) ? preset.content : [String(preset.content)]
         })));

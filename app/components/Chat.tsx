@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import rehypeRaw from 'rehype-raw';
 import type { EmoticonResult } from '@/app/api/chat/route';
+import Image from 'next/image';
 import { unstable_batchedUpdates } from 'react-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -513,17 +514,22 @@ export default function Chat() {
                           return (
                             <span className="block my-4">
                               <span className="block border border-gray-200 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-800">
-                                <img
-                                  src={proxiedSrc}
-                                  alt={alt || 'Image'}
-                                  className="max-w-full h-auto mx-auto block"
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                  }}
-                                  crossOrigin="anonymous"
-                                  referrerPolicy="no-referrer"
-                                />
+                                <div className="relative w-full h-auto">
+                                  <Image
+                                    src={proxiedSrc}
+                                    alt={alt || 'Image'}
+                                    width={200}
+                                    height={200}
+                                    className="mx-auto block object-contain"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                    }}
+                                    unoptimized={proxiedSrc.startsWith('data:image')}
+                                    crossOrigin="anonymous"
+                                    referrerPolicy="no-referrer"
+                                  />
+                                </div>
                                 {alt && (
                                   <span className="block text-xs text-center text-gray-500 dark:text-gray-400 mt-1">
                                     {alt}
