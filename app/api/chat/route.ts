@@ -327,13 +327,15 @@ export async function POST(req: Request) {
     // Add system prompt if provided
     if (systemPrompt) {
       // Handle both string and array format system prompts
-      let formattedPrompt;
+      //let formattedPrompt;
       if (Array.isArray(systemPrompt)) {
         // console.log('Received array system prompt:', systemPrompt);
-        formattedPrompt = systemPrompt.join('\n');
+        // formattedPrompt = 
+        systemPrompt.join('\n');
       } else {
         // console.log('Received string system prompt:', systemPrompt);
-        formattedPrompt = String(systemPrompt).replace(/\n/g, '\n');
+        //formattedPrompt = 
+        String(systemPrompt).replace(/\n/g, '\n');
       }
       // console.log('Formatted system prompt:', formattedPrompt);
       // messages.push({
