@@ -45,9 +45,33 @@ export default function SettingsPanel({ options, position = 'bottom-right', onPr
     setTimeout(() => setIsAnimating(false), 300);
   };
 
-  const handleOptionClick = (id: string) => {
-    setActiveOption((prev) => (prev === id ? null : id));
-  };
+  const [origin, setOrigin] = useState<string>('50% 50%');
+  const [previousOption, setPreviousOption] = useState<string | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+
+  const handleOptionClick = (id: string, e: React.MouseEvent) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = (rect.left + rect.width / 2) / window.innerWidth * 100;
+    const y = (rect.top + rect.height / 2) / window.innerHeight * 100;
+    setOrigin(`${x}% ${y}%`);
+  
+    if (id === activeOption) {
+      setActiveOption(null);
+      return;
+    }
+  
+    if (activeOption) {
+      setIsTransitioning(true);
+      setPreviousOption(activeOption);
+      setTimeout(() => {
+        setActiveOption(id);
+        setIsTransitioning(false);
+      }, 200); // 动画时间匹配 CSS
+    } else {
+      setActiveOption(id);
+    }
+  };  
 
   // 处理点击外部关闭面板
   useEffect(() => {
@@ -183,25 +207,35 @@ export default function SettingsPanel({ options, position = 'bottom-right', onPr
       {/* Expanded Panel */}
       <div className={`relative transition-all duration-300 z-40 ${isOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
         {/* Options Circle */}
-        <div className={`absolute -top-40 -left-40 w-80 h-80 transition-all duration-500 ${isOpen ? 'scale-100' : 'scale-0'}`}>
+        <div className={`absolute transition-all duration-500 ${isOpen ? 'scale-100' : 'scale-0'}`}
+            style={{
+              width: '160px',
+              height: '160px',
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+            }}
+        >
           {options.map((option, index) => {
-            const angle = (index * (1.5 * Math.PI)) / options.length;
-            const x = 80 + 70 * Math.cos(angle);
-            const y = 80 + 70 * Math.sin(angle);
+            // 计算角度范围在135-225度之间（左上象限）
+            const radius = 80;
+            const angle = Math.PI + (index * (Math.PI / 2)) / (options.length - 1 || 1);
+            const x = radius * Math.cos(angle);
+            const y = radius * Math.sin(angle);
 
             return (
               <button
                 key={option.id}
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleOptionClick(option.id);
+                  handleOptionClick(option.id, e);
                 }}
                 className={`absolute w-12 h-12 rounded-full bg-white dark:bg-gray-700 shadow-md flex items-center justify-center transition-all duration-300 hover:scale-110 ${
                   activeOption === option.id ? 'ring-2 ring-blue-500 scale-110' : ''
                 }`}
                 style={{
-                  left: `${x}px`,
-                  top: `${y}px`,
+                  left: `calc(40% + ${x}px)`,
+                  top: `calc(36% + ${y}px)`,
                   transform: 'translate(-50%, -50%)',
                   transitionDelay: isOpen ? `${index * 50}ms` : '0ms',
                 }}
@@ -215,17 +249,26 @@ export default function SettingsPanel({ options, position = 'bottom-right', onPr
 
         {/* Settings Card */}
         <div
-          className={`absolute bottom-20 right-0 w-72 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-50 transition-all duration-300 transform ${
-            activeOption ? 'opacity-100 translate-y-0' : 'opacity-0 pointer-events-none translate-y-4'
-          }`}
+          className={`fixed top-1/2 left-1/2 w-[90vw] max-w-3xl h-[70vh] overflow-y-auto
+            bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-300
+            dark:border-gray-700 z-50 transform -translate-x-1/2 -translate-y-1/2
+            transition-all duration-500 ease-out ${
+              activeOption ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-50 pointer-events-none'
+            }`}
+          style={{ transformOrigin: origin }}
         >
-          {activeOption && (
-            <div className="p-4">
-              <h3 className="text-lg font-medium mb-4">
-                {options.find((o) => o.id === activeOption)?.title}
+          {(activeOption || previousOption) && (
+            <div
+              className={`p-6 transition-opacity duration-300 ${
+                isTransitioning ? 'opacity-0' : 'opacity-100'
+              }`}
+              key={activeOption || previousOption} // 强制重新渲染
+            >
+              <h3 className="text-xl font-semibold mb-4">
+                {options.find((o) => o.id === (activeOption || previousOption))?.title}
               </h3>
               <div className="space-y-4">
-                {activeOption === 'prompt' && (
+                {(activeOption || previousOption) === 'prompt' && (
                   <>
                     <div className="mb-4">
                       <label className="block text-sm font-medium mb-1">
@@ -251,13 +294,14 @@ export default function SettingsPanel({ options, position = 'bottom-right', onPr
                       <textarea
                         value={customPrompt}
                         onChange={handleCustomPromptChange}
-                        className="w-full p-2 border rounded min-h-[100px]"
-                        placeholder="Please press custom prompt..."
+                        className="w-full p-2 border rounded min-h-[120px]"
+                        placeholder="Please enter your custom prompt..."
                       />
                     </div>
                   </>
                 )}
-                {activeOption !== 'prompt' && options.find((o) => o.id === activeOption)?.content}
+                {(activeOption || previousOption) !== 'prompt' &&
+                  options.find((o) => o.id === (activeOption || previousOption))?.content}
               </div>
             </div>
           )}
